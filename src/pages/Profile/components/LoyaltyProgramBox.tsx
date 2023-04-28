@@ -4,6 +4,7 @@ import { BigNumberValue } from '../../../components/BigNumberValue';
 import { config, getTokenConfig } from '../../../config';
 import { QUERY_LOYALTY_INFO } from '../../../utils/queries';
 import LoyaltyProgramHistoryBox from './LoyaltyProgramHistoryBox';
+import { VALUE_DECIMALS } from '../../../utils/constant';
 
 const LoyaltyProgramBox: FC<{ wallet: string }> = ({ wallet }) => {
   const info = useQuery(QUERY_LOYALTY_INFO(wallet));
@@ -41,13 +42,12 @@ const LoyaltyProgramBox: FC<{ wallet: string }> = ({ wallet }) => {
             <span>
               <span className="text-#fff font-bold text-16px">
                 <BigNumberValue
-                  value={info.data?.estimatedRewardAmount}
-                  decimals={rewardToken?.decimals}
-                  fractionDigits={rewardToken.fractionDigits}
-                  threshold={rewardToken.threshold}
+                  value={info.data?.estimatedReward}
+                  decimals={VALUE_DECIMALS}
+                  fractionDigits={2}
+                  currency='USD'
                 />
-              </span>{' '}
-              {config.rewardToken}
+              </span>
             </span>
           </div>
           <div className="mt-28px mb-23px b-t-1px b-t-dashed b-t-#4c4e4e" />

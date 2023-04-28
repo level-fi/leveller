@@ -37,7 +37,7 @@ export interface StakingInfo {
 
 export interface LoyaltyInfo {
   balance: bigint;
-  estimatedRewardAmount: bigint;
+  estimatedReward: bigint;
   totalRewardAmount: bigint;
 }
 

@@ -355,8 +355,8 @@ export const QUERY_LOYALTY_INFO = (wallet: string) => ({
   enable: !!wallet && isAddress(wallet),
   queryFn: async () => {
     const lyLvl = config.tokens.LY_LVL;
-
-    const [[lyLvlBalance], [totalSupply], [epochReward], [currentBatchId]] = await multicall([
+    const incentiveController = config.incentiveController;
+    const [[lyLvlBalance], [totalSupply], [loyaltyCap], [currentBatchId]] = await multicall([
       {
         target: lyLvl.address,
         signature: 'balanceOf(address) returns (uint256)',
@@ -368,8 +368,8 @@ export const QUERY_LOYALTY_INFO = (wallet: string) => ({
         params: [],
       },
       {
-        target: lyLvl.address,
-        signature: 'epochReward() returns (uint256)',
+        target: incentiveController,
+        signature: 'LOYALTY_CAP() returns (uint256)',
         params: [],
       },
       {
@@ -399,11 +399,11 @@ export const QUERY_LOYALTY_INFO = (wallet: string) => ({
       0n,
     );
 
-    const estimatedRewardAmount = totalSupply > 0 ? (lyLvlBalance * epochReward) / totalSupply : 0n;
+    const estimatedReward = totalSupply > 0 ? (lyLvlBalance * loyaltyCap) / totalSupply : 0n;
 
     return {
       balance: lyLvlBalance,
-      estimatedRewardAmount,
+      estimatedReward,
       totalRewardAmount,
     } as LoyaltyInfo;
   },

@@ -14,6 +14,7 @@ export const Config: ChainConfig = {
   rewardToken: 'LVL',
   governanceToken: 'LGO',
   loyaltyToken: 'LY_LVL',
+  incentiveController: '0x2Ed6ceD074B2E822d3Afc1949A4433Bf4654A43A',
   staking: {
     dao: '0x87CC04d6FE59859cB7eB6d970EBc22dCdCBc9368',
     lvlStaking: '0x08A12FFedf49fa5f149C73B07E31f99249e40869',
