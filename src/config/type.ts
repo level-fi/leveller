@@ -10,6 +10,7 @@ export type ChainConfig = {
   rewardToken: string;
   governanceToken: string;
   loyaltyToken: string;
+  incentiveController: string;
   staking: {
     dao: string;
     votingPowerView: string;
