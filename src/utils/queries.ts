@@ -369,7 +369,7 @@ export const QUERY_LOYALTY_INFO = (wallet: string) => ({
       },
       {
         target: incentiveController,
-        signature: 'LOYALTY_CAP() returns (uint256)',
+        signature: 'AMOUNT_LOYALTY_REWARD() returns (uint256)',
         params: [],
       },
       {
