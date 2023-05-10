@@ -43,11 +43,12 @@ const LoyaltyProgramBox: FC<{ wallet: string }> = ({ wallet }) => {
               <span className="text-#fff font-bold text-16px">
                 <BigNumberValue
                   value={info.data?.estimatedReward}
-                  decimals={VALUE_DECIMALS}
-                  fractionDigits={2}
-                  currency='USD'
+                  decimals={rewardToken?.decimals}
+                  fractionDigits={rewardToken.fractionDigits}
+                  threshold={rewardToken.threshold}
                 />
-              </span>
+              </span>{' '}
+              {config.rewardToken}
             </span>
           </div>
           <div className="mt-28px mb-23px b-t-1px b-t-dashed b-t-#4c4e4e" />
