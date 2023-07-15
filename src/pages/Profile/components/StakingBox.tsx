@@ -4,9 +4,11 @@ import { BigNumberValue } from '../../../components/BigNumberValue';
 import { config, getTokenConfig } from '../../../config';
 import { VALUE_DECIMALS } from '../../../utils/constant';
 import { QUERY_STAKING_INFO } from '../../../utils/queries';
+import { useTreasury } from '../../../hooks/useTreasury';
 
 const StakingBox: FC<{ wallet: string }> = ({ wallet }) => {
   const info = useQuery(QUERY_STAKING_INFO(wallet));
+  const treasuryInfo = useTreasury();
   const rewardToken = getTokenConfig(config.rewardToken);
   const governanceToken = getTokenConfig(config.governanceToken);
   const slpToken = config.tokens.SLP;
@@ -66,8 +68,8 @@ const StakingBox: FC<{ wallet: string }> = ({ wallet }) => {
                 <BigNumberValue
                   value={
                     info.data?.claimableStakeRewardAmount &&
-                    info.data?.lgoIntrinsicPrice &&
-                    info.data?.claimableStakeRewardAmount * info.data?.lgoIntrinsicPrice
+                    treasuryInfo?.lgoSurrenderValue &&
+                    info.data?.claimableStakeRewardAmount * treasuryInfo.lgoSurrenderValue
                   }
                   decimals={VALUE_DECIMALS}
                   fractionDigits={2}
@@ -160,8 +162,8 @@ const StakingBox: FC<{ wallet: string }> = ({ wallet }) => {
                 <BigNumberValue
                   value={
                     info.data?.lgoStakeAmount &&
-                    info.data?.lgoRedeemPrice &&
-                    info.data?.lgoStakeAmount * info.data?.lgoRedeemPrice
+                    treasuryInfo?.lgoSurrenderValue &&
+                    info.data?.lgoStakeAmount * treasuryInfo.lgoSurrenderValue
                   }
                   decimals={VALUE_DECIMALS}
                   fractionDigits={2}

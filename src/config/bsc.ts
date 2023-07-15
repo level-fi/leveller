@@ -9,6 +9,7 @@ export const Config: ChainConfig = {
   multicall: '0xcA11bde05977b3631167028862bE2a173976CA11',
   terminalApi: 'https://terminal-api.level.finance/v7',
   analyticsApi: 'https://stats-api.level.finance',
+  v2Api: 'https://api.level.finance/v2',
   pool: '0xA5aBFB56a78D2BD4689b25B8A77fd49Bb0675874',
   minichef: '0x5aE081b6647aEF897dEc738642089D4BDa93C0e7',
   rewardToken: 'LVL',
