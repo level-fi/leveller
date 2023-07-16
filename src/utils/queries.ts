@@ -1,4 +1,4 @@
-import { JsonRpcProvider } from 'ethers';
+import { JsonRpcProvider, parseUnits } from 'ethers';
 import { config } from '../config';
 import {
   LiquidityInfo,
@@ -18,8 +18,9 @@ import {
 } from '../models';
 import { ProtocolTokenResponseSchema, TreasuryResponseSchema } from '../models/Treasury';
 import { isAddress } from './addresses';
-import { Precision } from './constant';
+import { Precision, VALUE_DECIMALS } from './constant';
 import { Call, createMulticall } from './multicall';
+import { uniV3SqrtPrice } from './helpers';
 
 const rpcProvider = new JsonRpcProvider(config.rpcUrl);
 
@@ -58,6 +59,22 @@ export const QUERY_PROTOCOL_TOKENS = () => {
     refetchInterval: 60000,
   };
 };
+
+export const QUERY_LGO_SPOT_PRICE = () => ({
+  queryKey: ['fetch', 'governancePrice'],
+  enabled: true,
+  queryFn: async () => {
+    const [[sqrtPriceX96]] = await multicall([
+      {
+        target: '0x9b501a7ad3087d603CeB34424B7B2a6c348Ad0b7', // Only BNB Chain
+        signature: 'slot0() view returns (uint160,int24,uint16,uint16,uint16,uint8,bool)',
+        params: [],
+      },
+    ]);
+    const lgoPrice = BigInt(uniV3SqrtPrice([18, 18], sqrtPriceX96)) * parseUnits('1', VALUE_DECIMALS - 18);
+    return lgoPrice;
+  },
+});
 
 export const QUERY_TRADING_INFO = (account: string) => ({
   queryKey: ['fetch', 'trading', account],
