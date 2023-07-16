@@ -6,6 +6,7 @@ export type ChainConfig = {
   multicall: string;
   terminalApi: string;
   analyticsApi: string;
+  v2Api: string;
   explorerUrl: string;
   rewardToken: string;
   governanceToken: string;

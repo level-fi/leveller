@@ -3,12 +3,16 @@ import { FC } from 'react';
 import { BigNumberValue } from '../../../components/BigNumberValue';
 import { config, getTokenConfig } from '../../../config';
 import { VALUE_DECIMALS } from '../../../utils/constant';
-import { QUERY_STAKING_INFO } from '../../../utils/queries';
+import { QUERY_LGO_SPOT_PRICE, QUERY_STAKING_INFO } from '../../../utils/queries';
+import { useTreasury } from '../../../hooks/useTreasury';
+import LGOTooltip from '../../../components/LGOTooltip';
 
 const StakingBox: FC<{ wallet: string }> = ({ wallet }) => {
   const info = useQuery(QUERY_STAKING_INFO(wallet));
+  const treasuryInfo = useTreasury();
   const rewardToken = getTokenConfig(config.rewardToken);
   const governanceToken = getTokenConfig(config.governanceToken);
+  const { data: lgoSpotPrice } = useQuery(QUERY_LGO_SPOT_PRICE());
   const slpToken = config.tokens.SLP;
 
   return (
@@ -63,16 +67,40 @@ const StakingBox: FC<{ wallet: string }> = ({ wallet }) => {
                 {config.governanceToken}
               </span>
               <span className="mt-8px text-12px">
-                <BigNumberValue
+                <LGOTooltip
+                  token={governanceToken}
+                  data={[
+                    {
+                      title: 'With LGO Intrinsic value:',
+                      value:
+                        info.data?.claimableStakeRewardAmount &&
+                        treasuryInfo?.lgoIntrinsicValue &&
+                        info.data?.claimableStakeRewardAmount * treasuryInfo.lgoIntrinsicValue,
+                      price: treasuryInfo?.lgoIntrinsicValue,
+                    },
+                    {
+                      title: 'With LGO Surrender value:',
+                      value:
+                        info.data?.claimableStakeRewardAmount &&
+                        treasuryInfo?.lgoSurrenderValue &&
+                        info.data?.claimableStakeRewardAmount * treasuryInfo.lgoSurrenderValue,
+                      price: treasuryInfo?.lgoSurrenderValue,
+                      isActive: true,
+                    },
+                    {
+                      title: 'With LGO Spot price:',
+                      value:
+                        info.data?.claimableStakeRewardAmount &&
+                        lgoSpotPrice &&
+                        info.data?.claimableStakeRewardAmount * lgoSpotPrice,
+                      price: lgoSpotPrice,
+                    },
+                  ]}
                   value={
                     info.data?.claimableStakeRewardAmount &&
-                    info.data?.lgoIntrinsicPrice &&
-                    info.data?.claimableStakeRewardAmount * info.data?.lgoIntrinsicPrice
+                    treasuryInfo?.lgoSurrenderValue &&
+                    info.data?.claimableStakeRewardAmount * treasuryInfo.lgoSurrenderValue
                   }
-                  decimals={VALUE_DECIMALS}
-                  fractionDigits={2}
-                  currency="USD"
-                  prefix="~"
                 />
               </span>
             </div>
@@ -157,16 +185,37 @@ const StakingBox: FC<{ wallet: string }> = ({ wallet }) => {
                 {config.governanceToken}
               </span>
               <span className="mt-8px text-12px">
-                <BigNumberValue
+                <LGOTooltip
+                  token={governanceToken}
+                  data={[
+                    {
+                      title: 'With LGO Intrinsic value:',
+                      value:
+                        info.data?.lgoStakeAmount &&
+                        treasuryInfo?.lgoIntrinsicValue &&
+                        info.data?.lgoStakeAmount * treasuryInfo.lgoIntrinsicValue,
+                      price: treasuryInfo?.lgoIntrinsicValue,
+                    },
+                    {
+                      title: 'With LGO Surrender value:',
+                      value:
+                        info.data?.lgoStakeAmount &&
+                        treasuryInfo?.lgoSurrenderValue &&
+                        info.data?.lgoStakeAmount * treasuryInfo.lgoSurrenderValue,
+                      price: treasuryInfo?.lgoSurrenderValue,
+                      isActive: true,
+                    },
+                    {
+                      title: 'With LGO Spot price:',
+                      value: info.data?.lgoStakeAmount && lgoSpotPrice && info.data?.lgoStakeAmount * lgoSpotPrice,
+                      price: lgoSpotPrice,
+                    },
+                  ]}
                   value={
                     info.data?.lgoStakeAmount &&
-                    info.data?.lgoRedeemPrice &&
-                    info.data?.lgoStakeAmount * info.data?.lgoRedeemPrice
+                    treasuryInfo?.lgoSurrenderValue &&
+                    info.data?.lgoStakeAmount * treasuryInfo.lgoSurrenderValue
                   }
-                  decimals={VALUE_DECIMALS}
-                  fractionDigits={2}
-                  currency="USD"
-                  prefix="~"
                 />
               </span>
             </div>

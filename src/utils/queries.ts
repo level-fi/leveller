@@ -16,13 +16,65 @@ import {
   TradingInfo,
   WalletInfo,
 } from '../models';
+import { ProtocolTokenResponseSchema, TreasuryResponseSchema } from '../models/Treasury';
 import { isAddress } from './addresses';
-import { Precision, TOKEN_DECIMALS, VALUE_DECIMALS } from './constant';
+import { Precision, VALUE_DECIMALS } from './constant';
 import { Call, createMulticall } from './multicall';
+import { uniV3SqrtPrice } from './helpers';
 
 const rpcProvider = new JsonRpcProvider(config.rpcUrl);
 
 const multicall = createMulticall(rpcProvider, config.multicall);
+
+export const QUERY_TREASURY = () => {
+  return {
+    queryKey: ['treasury'],
+    enabled: true,
+    queryFn: async () => {
+      const res = await fetch(`${config.v2Api}/treasury`);
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+
+      const parsed = TreasuryResponseSchema.parse(await res.json());
+      return parsed;
+    },
+    refetchInterval: 60000,
+  };
+};
+
+export const QUERY_PROTOCOL_TOKENS = () => {
+  return {
+    queryKey: ['protocol_tokens'],
+    enabled: true,
+    queryFn: async () => {
+      const res = await fetch(`${config.v2Api}/token`);
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+
+      const parsed = ProtocolTokenResponseSchema.parse(await res.json());
+      return parsed;
+    },
+    refetchInterval: 60000,
+  };
+};
+
+export const QUERY_LGO_SPOT_PRICE = () => ({
+  queryKey: ['fetch', 'governancePrice'],
+  enabled: true,
+  queryFn: async () => {
+    const [[sqrtPriceX96]] = await multicall([
+      {
+        target: '0x9b501a7ad3087d603CeB34424B7B2a6c348Ad0b7', // Only BNB Chain
+        signature: 'slot0() view returns (uint160,int24,uint16,uint16,uint16,uint8,bool)',
+        params: [],
+      },
+    ]);
+    const lgoPrice = BigInt(uniV3SqrtPrice([18, 18], sqrtPriceX96)) * parseUnits('1', VALUE_DECIMALS - 18);
+    return lgoPrice;
+  },
+});
 
 export const QUERY_TRADING_INFO = (account: string) => ({
   queryKey: ['fetch', 'trading', account],
@@ -252,46 +304,6 @@ export const QUERY_STAKING_INFO = (wallet: string) => ({
         signature: 'balanceOf(address) returns (uint256 amount)',
         params: [LVL_BNB_LP.address],
       },
-      {
-        target: USDT.address,
-        signature: 'balanceOf(address) returns (uint256 amount)',
-        params: [LVL_USDT_LP.address],
-      },
-      {
-        target: LVL_USDT_LP.address,
-        signature: 'totalSupply() returns (uint256)',
-        params: [],
-      },
-      {
-        target: LVL_USDT_LP.address,
-        signature: 'balanceOf(address) returns (uint256 amount)',
-        params: [config.treasury.address],
-      },
-      {
-        target: SLP.address,
-        signature: 'balanceOf(address) returns (uint256 amount)',
-        params: [config.treasury.address],
-      },
-      {
-        target: config.staking.stakingView,
-        signature: 'estimatedLGOCirculatingSupply() returns (uint256)',
-        params: [],
-      },
-      {
-        target: LVL.address,
-        signature: 'balanceOf(address) returns (uint256 amount)',
-        params: [config.treasury.address],
-      },
-      {
-        target: LVL.address,
-        signature: 'balanceOf(address) returns (uint256 amount)',
-        params: [config.treasury.treasuryReserve],
-      },
-      {
-        target: LVL.address,
-        signature: 'balanceOf(address) returns (uint256 amount)',
-        params: [config.treasury.auctionTreasury],
-      },
     ];
 
     const res = await multicall(calls);
@@ -310,14 +322,6 @@ export const QUERY_STAKING_INFO = (wallet: string) => ({
       [bnbBalanceInStableLp],
       [bnbBalanceInNativeLp],
       [lvlBalanceInNativeLp],
-      [usdtBalanceInRewardStableLp],
-      [totalSupplyRewardStableLp],
-      [rewardStableLpBalanceInTreasury],
-      [slpBalanceInTreasury],
-      [lgoCirculatingSupply],
-      [lvlBalanceInTreasury],
-      [lvlBalanceInTreasuryReserve],
-      [lvlBalanceInAuctionTreasury],
     ] = res;
 
     const slpPrice = (maxSeniorTrancheValue + minSeniorTrancheValue) / (2n * seniorTrancheSupply);
@@ -326,14 +330,6 @@ export const QUERY_STAKING_INFO = (wallet: string) => ({
       lvlBalanceInNativeLp /
       bnbBalanceInStableLp /
       BigInt(1e18);
-    const lvlUsdtLpPrice = (BigInt(1e30) * usdtBalanceInRewardStableLp * 2n) / totalSupplyRewardStableLp / BigInt(1e18);
-    const lgoRedeemPrice =
-      (slpPrice * slpBalanceInTreasury + lvlUsdtLpPrice * rewardStableLpBalanceInTreasury) / lgoCirculatingSupply;
-    const lgoIntrinsicPrice =
-      (slpPrice * slpBalanceInTreasury +
-        lvlUsdtLpPrice * rewardStableLpBalanceInTreasury +
-        (lvlBalanceInTreasury + lvlBalanceInTreasuryReserve + lvlBalanceInAuctionTreasury) * lvlPrice) /
-      lgoCirculatingSupply;
 
     return {
       stakeAmount,
@@ -344,8 +340,6 @@ export const QUERY_STAKING_INFO = (wallet: string) => ({
       claimableLgoStakeRewardAmount,
       slpPrice,
       lvlPrice,
-      lgoRedeemPrice,
-      lgoIntrinsicPrice,
     } as StakingInfo;
   },
 });
@@ -758,16 +752,13 @@ export const QUERY_TOP_LVL_HOLDER_INFO = () => ({
       throw new Error('API request failed');
     }
     const data = await res.json();
-    return data?.map(
-      (r) =>
-        ({
-          wallet: r?.address,
-          totalAmount: r?.total,
-          daoStakingAmount: r?.dao_staking,
-          lvlStakingAmount: r?.lvl_staking,
-          walletAmount: r?.wallet,
-        }),
-    ) as TopLVLHolderInfo[];
+    return data?.map((r) => ({
+      wallet: r?.address,
+      totalAmount: r?.total,
+      daoStakingAmount: r?.dao_staking,
+      lvlStakingAmount: r?.lvl_staking,
+      walletAmount: r?.wallet,
+    })) as TopLVLHolderInfo[];
   },
 });
 
@@ -780,15 +771,12 @@ export const QUERY_TOP_LGO_HOLDER_INFO = () => ({
       throw new Error('API request failed');
     }
     const data = await res.json();
-    return data?.map(
-      (r) =>
-        ({
-          wallet: r?.address,
-          totalAmount: r?.total,
-          stakingAmount: r?.lgo_staking,
-          walletAmount: r?.wallet,
-        }),
-    ) as TopLGOHolderInfo[];
+    return data?.map((r) => ({
+      wallet: r?.address,
+      totalAmount: r?.total,
+      stakingAmount: r?.lgo_staking,
+      walletAmount: r?.wallet,
+    })) as TopLGOHolderInfo[];
   },
 });
 
@@ -801,13 +789,10 @@ export const QUERY_TOP_LY_LVL_RECEIVER_INFO = () => ({
       throw new Error('API request failed');
     }
     const data = await res.json();
-    return data?.map(
-      (r) =>
-        ({
-          wallet: r?.address,
-          rewardAmount: r?.amount,
-        }),
-    ) as TopLyLvlReceiverInfo[];
+    return data?.map((r) => ({
+      wallet: r?.address,
+      rewardAmount: r?.amount,
+    })) as TopLyLvlReceiverInfo[];
   },
 });
 
@@ -820,12 +805,9 @@ export const QUERY_TOP_REFERRER_INFO = () => ({
       throw new Error('API request failed');
     }
     const data = await res.json();
-    return data?.map(
-      (r) =>
-        ({
-          wallet: r?.address,
-          rewardAmount: r?.reward,
-        }),
-    ) as TopReferralInfo[];
+    return data?.map((r) => ({
+      wallet: r?.address,
+      rewardAmount: r?.reward,
+    })) as TopReferralInfo[];
   },
 });

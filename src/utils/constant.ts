@@ -5,6 +5,7 @@ export const PERCENTAGE_DECIMALS = 6;
 
 // FRACTION
 export const CurrencyFractionDigits = 2;
+export const PercentageFractionDigits = 2;
 
 // THRESHOLD
 export const DefaultThreshold = 0.001;
